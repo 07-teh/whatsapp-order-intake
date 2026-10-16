@@ -38,4 +38,20 @@ python3 tools/learn_items.py                # item aliases and per-customer over
 python3 pipeline/eval.py <night> ...        # replay past nights before trusting the run
 ```
 
+## Hard-coded paths
+
+The Mac side was written for one machine: an Apple Silicon Mac with Homebrew in `/opt/homebrew`.
+These absolute paths need changing on any other setup:
+
+| File | Path |
+|---|---|
+| `pipeline/attachments.py` | `/opt/homebrew/bin/pdftotext`, `/opt/homebrew/bin/pdftoppm` (poppler), `/usr/bin/sips` (macOS) |
+| `console/bots.json` | `/opt/homebrew/bin/python3` for the balance query |
+| `n8n/start_n8n.sh` | Homebrew `node@24` on `PATH` (`/opt/homebrew/opt/node@24/bin`) |
+| `n8n/desktop_launcher.sh` | `/opt/homebrew/bin/python3` to start the console |
+| `n8n/workflow_*.json` | `/opt/homebrew/bin/python3` and `cd /path/to/whatsapp-order-intake` in every Execute Command node |
+| `tools/wa_extract.py`, `pipeline/attachments.py` | the WhatsApp Desktop container under `~/Library/Group Containers/` (macOS only) |
+
+The demo and the tests do not use any of these, and CI runs them on Linux.
+
 `data/`, `output/`, `.env` and anything with real customer data is git-ignored.

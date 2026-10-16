@@ -1,5 +1,7 @@
 # WhatsApp Order Intake → SQL Account
 
+[![CI](https://github.com/07-teh/whatsapp-order-intake/actions/workflows/ci.yml/badge.svg)](https://github.com/07-teh/whatsapp-order-intake/actions/workflows/ci.yml)
+
 Turns free-text orders from a poultry distributor's WhatsApp sales groups into Sales Orders in
 **SQL Account**, a Malaysian accounting/ERP system. An LLM reads the messages. Deterministic checks
 decide which drafts can be trusted. A person approves the final batch before anything is written.
@@ -105,7 +107,8 @@ This generates a synthetic workspace (332 history messages, 264 past Sales Order
 messages). It then runs the **production code unchanged** on that workspace: the learners, candidate
 ranking, prompt building, checks and replay evaluation. DeepSeek answers are replayed from
 `demo/recorded/`, which holds real DeepSeek responses to these synthetic prompts. Run with
-`--record` and a `DEEPSEEK_API_KEY` to call the model live.
+`--record` and a `DEEPSEEK_API_KEY` to call the model live. The pipeline's own reports are in Chinese,
+the team's working language, so the demo ends with an English summary of the same result.
 
 The recorded run, as `eval.py` reports it: of 12 expected orders, **11 released (9 correct in every field,
 2 wrong) and 1 held** (a new customer). One wrong order went out without its `Add wing 3kg` reply: that reply
@@ -120,7 +123,7 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-The tests cover unit conversion, order-header parsing in each salesperson's layout, item-line parsing,
+CI runs the tests and the demo replay on Python 3.10–3.13 for every push. The tests cover unit conversion, order-header parsing in each salesperson's layout, item-line parsing,
 per-customer item overrides, the deterministic checks and order merging.
 
 ## Repository layout
@@ -136,7 +139,7 @@ per-customer item overrides, the deterministic checks and order merging.
 | `nightly/` | Small helpers used during human review (look up past orders, reconcile with the system) |
 | `demo/` | Synthetic data generator and one-command demo |
 | `tests/` | pytest suite |
-| `docs/` | [Requirements process](docs/requirements-process.md), [AI workflow](docs/ai-workflow.md), [production setup](docs/production.md) |
+| `docs/` | [Requirements process](docs/requirements-process.md), [AI workflow](docs/ai-workflow.md), [production setup](docs/production.md), including the hard-coded macOS paths |
 
 Code comments, prompts and reports are in Chinese, the working language of the project. Every main module
 starts with an English docstring.

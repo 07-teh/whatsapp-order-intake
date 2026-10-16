@@ -46,11 +46,13 @@ def main():
     if not a.record:
         os.environ.pop('DEEPSEEK_API_KEY', None)
     original = deepseek.chat_json
+    misses = []
 
     def chat_json(system, user, use_cache=True, images=()):
         try:
             return original(system, user, use_cache, images)
         except SystemExit:          # replay mode and this prompt was never recorded
+            misses.append(user)
             raise ValueError('no recorded answer for this prompt (run with --record)')
 
     deepseek.chat_json = chat_json
@@ -59,7 +61,7 @@ def main():
     print(f'\n$ python3 pipeline/run_night.py --night {NIGHT} --start "{START}" --end "{END}"'
           + ('' if a.record else '   (replaying demo/recorded/)'))
     run_night.run(NIGHT, START, END, out_root=os.path.join('output', 'ds'))
-    _, report = ev.compare(NIGHT, os.path.join('output', 'ds'))
+    stats, report = ev.compare(NIGHT, os.path.join('output', 'ds'))
 
     out_dir = os.path.join(WS, 'output', 'ds', NIGHT)
     with open(os.path.join(out_dir, 'orders_ds.json'), encoding='utf-8') as f:
@@ -74,6 +76,47 @@ def main():
     print('==== replay evaluation against the human-verified answer ====')
     print(report)
     print(f'\nfiles: {os.path.relpath(out_dir, ROOT)}/ (demo_result.json, orders_ds.txt, raw.json)')
+    english_summary(stats, orders, out_dir)
+    if misses and not a.record:
+        sys.exit(f'\n{len(misses)} prompt(s) had no recorded answer: the prompts changed since recording. '
+                 'Re-record with --record.')
+
+
+def english_summary(stats, orders, out_dir):
+    """The pipeline reports in Chinese (the team's language); this is the same result in English."""
+    import eval as ev
+    with open(os.path.join(out_dir, 'raw.json'), encoding='utf-8') as f:
+        raw = json.load(f)
+    released = {o['ref']: o for o in orders}
+    held = {h['ref'] for h in raw['held']}
+    gt = ev.gt_orders(NIGHT)
+    print('\n==== Summary in English ====')
+    print(BANNER)
+    print(f"{stats['答案']} orders expected | {stats['出了']} released ({stats['全对']} correct in every field, "
+          f"{stats['出了但有错']} wrong) | {stats['扣下']} held for a person | {stats['漏了']} missed | "
+          f"{stats['多出']} extra")
+    print(f"precision of released orders {stats['全对'] / max(stats['出了'], 1):.1%}, "
+          f"coverage {stats['出了'] / max(stats['答案'], 1):.1%}")
+    for g in gt:
+        d = released.get(g['ref'])
+        name = (g.get('company_name_override') or g['company_name']).strip()
+        if g.get('doc_ref1') == 'STAFF':
+            name += ' (staff meal, separate invoice)'
+        if d is None:
+            status = 'HELD for a person' if g['ref'] in held or g['ref'].split('-STAFF')[0] in held else 'MISSED'
+        else:
+            diff = [label for label, k in (('customer', 'code'), ('branch', 'branch_name'), ('date', 'doc_date'),
+                                           ('Ref1', 'doc_ref1'), ('company name', 'company_name_override'))
+                    if (d.get(k) or '') != (g.get(k) or '')]
+            with_uom = all('uom' in i for i in g['items'])
+            if sorted(ev.item_key(i, with_uom) for i in d['items']) != sorted(ev.item_key(i, with_uom) for i in g['items']):
+                diff.append('items')
+            status = 'released, correct' if not diff else f"released, WRONG ({', '.join(diff)})"
+        print(f'  {status:<34} {name}')
+    extra_held = [r for r in raw['results'] if r['ref'] in held and r['ref'] not in {g['ref'] for g in gt}]
+    for r in extra_held:
+        print(f"  {'HELD for a person':<34} reply {r['text'].splitlines()[0]!r} (an add-on to an earlier order)")
+    print('Reasons for held and wrong orders are in the review list above (Chinese) and in demo/README.md.')
 
 
 if __name__ == '__main__':
