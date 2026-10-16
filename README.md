@@ -107,10 +107,11 @@ ranking, prompt building, checks and replay evaluation. DeepSeek answers are rep
 `demo/recorded/`, which holds real DeepSeek responses to these synthetic prompts. Run with
 `--record` and a `DEEPSEEK_API_KEY` to call the model live.
 
-The recorded run: 9 orders released and fully correct, 2 held for a person (a new customer, and an add-on
-whose description failed the shape check), and 1 wrong release that the checks missed (an ambiguous "duck"
-the model should have asked about). [demo/README.md](demo/README.md) lists what each message tests and
-analyses the miss.
+The recorded run, as `eval.py` reports it: of 12 expected orders, **11 released (9 correct in every field,
+2 wrong) and 1 held** (a new customer). One wrong order went out without its `Add wing 3kg` reply: that reply
+was held because the model left the size out of the description, so it is waiting for a person. The other
+is an ambiguous "duck" that the model should have asked about and that no check caught.
+[demo/README.md](demo/README.md) lists what each message tests and analyses both misses.
 
 ## Tests
 

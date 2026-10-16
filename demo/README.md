@@ -44,17 +44,28 @@ The "expected" column is what a careful clerk would do. The demo prints what Dee
 
 ## What DeepSeek actually did (recorded run)
 
-Model `deepseek-flash`, low reasoning effort, 12 calls, ~32k input tokens. Replaying gives the same result every time:
+Model `deepseek-flash`, low reasoning effort, 12 calls, ~32k input tokens. The demo night is fixed
+(`20261015`, window 14 Oct 22:00 → 15 Oct 22:00) and no check reads today's date, so every replay gives the
+same result. `eval.py` prints:
 
-| | |
-|---|---|
-| Released and correct in every field | **9** orders: mixed languages, ctn/pkt conversion, head count as qty 0, staff-meal split, PO → Ref1, shared cash account, per-customer override |
-| Held for a person | **2**: the new customer, and the `Add wing 3kg` reply. The model wrote `CHIC WING` without the size this customer always has, and the description-shape check stopped it |
-| Released but wrong | **1**: `Duck 10 nos`. The rules say *ask* when Eden vs. regular duck cannot be told apart. The model went by this customer's history and picked regular duck, and no check caught it |
+```
+== 20261015  答案 12 张 | DeepSeek 出了 11（全对 9，有错 2） | 扣下 1 | 附件 0 | 漏了 0 | 多出 0
+   放行的单正确率 81.8%   覆盖率 91.7%   错的字段 {'品项': 2}
+```
 
-The evaluation counts the Golden Spoon order as wrong (10 kg instead of 13 kg) because its add-on was held
-and left for a person to merge. That is the intended behaviour, but the metric does not show it.
+That is, of the 12 orders a person finally entered, **11 were released** (9 correct in every field, 2 wrong)
+and **1 was held**:
+
+| Order | Result | Why |
+|---|---|---|
+| 9 orders (mixed languages, ctn/pkt conversion, head count as qty 0, staff-meal split, PO → Ref1, shared cash account, per-customer override) | released, correct | |
+| Golden Spoon (`20261014-Ami-91AD4`) | released, **wrong**: wing 10 kg, answer 13 kg | Its `Add wing 3kg` reply was **held**: the model wrote `CHIC WING` without the size this customer always uses, and the description-shape check stopped it. The original order went out without the extra 3 kg, which is left for a person to add. The add-on is not an order of its own, so `eval.py` counts it as an error on Golden Spoon. |
+| Wong Kee Duck (`Duck 10 nos`) | released, **wrong**: regular duck, answer Eden duck | The rules say *ask* when Eden vs. regular duck cannot be told apart. The model went by this customer's history instead, and no check caught it. |
+| Crispy Corner | **held** | Customer is in the master data but has no order history. |
+
+In the refs, `Ami` / `Mei` / `Off` are the first three letters of the chat name (`Amin - Ordering Group`, ...),
+not the customer.
 
 The duck miss points to the next improvement: a deterministic rule that holds any duck line that does not
 say which kind, instead of trusting the model to ask. The demo night is deliberately packed with edge cases,
-so its 9/11 precision is not comparable with the 96.2% measured over 346 real orders.
+so its 81.8% precision (9/11) is not comparable with the 96.2% measured over 346 real orders.
