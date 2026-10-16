@@ -1,0 +1,23 @@
+{
+  "name": "DeepSeek 余额",
+  "id": "poultryDsBalance1",
+  "active": false,
+  "settings": {"executionOrder": "v1", "timezone": "Asia/Kuala_Lumpur"},
+  "nodes": [
+    {"id": "c1", "name": "余额网页（链接）", "type": "n8n-nodes-base.webhook", "typeVersion": 2, "position": [0, 0], "webhookId": "poultry-ds-balance",
+     "parameters": {"httpMethod": "GET", "path": "ds-balance", "responseMode": "responseNode", "options": {}}},
+    {"id": "c2", "name": "查余额（网页）", "type": "n8n-nodes-base.executeCommand", "typeVersion": 1, "position": [260, 0],
+     "parameters": {"command": "cd /path/to/whatsapp-order-intake && /opt/homebrew/bin/python3 pipeline/balance.py --html"}},
+    {"id": "c3", "name": "显示网页", "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.1, "position": [520, 0],
+     "parameters": {"respondWith": "text", "responseBody": "={{ $json.stdout }}",
+                    "options": {"responseHeaders": {"entries": [{"name": "Content-Type", "value": "text/html; charset=utf-8"}]}}}},
+    {"id": "c4", "name": "手动查一次", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 220], "parameters": {}},
+    {"id": "c5", "name": "查余额", "type": "n8n-nodes-base.executeCommand", "typeVersion": 1, "position": [260, 220],
+     "parameters": {"command": "cd /path/to/whatsapp-order-intake && /opt/homebrew/bin/python3 pipeline/balance.py"}}
+  ],
+  "connections": {
+    "余额网页（链接）": {"main": [[{"node": "查余额（网页）", "type": "main", "index": 0}]]},
+    "查余额（网页）": {"main": [[{"node": "显示网页", "type": "main", "index": 0}]]},
+    "手动查一次": {"main": [[{"node": "查余额", "type": "main", "index": 0}]]}
+  }
+}

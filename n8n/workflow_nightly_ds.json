@@ -1,0 +1,196 @@
+{
+ "name": "WhatsApp 订单 · DeepSeek 每晚草稿（影子模式）",
+ "id": "poultryDsNightly1",
+ "active": false,
+ "settings": {
+  "executionOrder": "v1",
+  "timezone": "Asia/Kuala_Lumpur",
+  "saveManualExecutions": true
+ },
+ "nodes": [
+  {
+   "id": "a1",
+   "name": "每晚 22:00",
+   "type": "n8n-nodes-base.scheduleTrigger",
+   "typeVersion": 1.2,
+   "position": [
+    0,
+    0
+   ],
+   "parameters": {
+    "rule": {
+     "interval": [
+      {
+       "field": "cronExpression",
+       "expression": "0 22 * * *"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "a2",
+   "name": "手动跑一次",
+   "type": "n8n-nodes-base.manualTrigger",
+   "typeVersion": 1,
+   "position": [
+    0,
+    200
+   ],
+   "parameters": {}
+  },
+  {
+   "id": "a3",
+   "name": "读 WhatsApp + DeepSeek 开单",
+   "type": "n8n-nodes-base.executeCommand",
+   "typeVersion": 1,
+   "position": [
+    260,
+    100
+   ],
+   "parameters": {
+    "command": "cd /path/to/whatsapp-order-intake && /opt/homebrew/bin/python3 tools/wa_extract.py && /opt/homebrew/bin/python3 pipeline/run_night.py --auto"
+   }
+  },
+  {
+   "id": "a4",
+   "name": "拿 zip",
+   "type": "n8n-nodes-base.readWriteFile",
+   "typeVersion": 1,
+   "position": [
+    520,
+    100
+   ],
+   "parameters": {
+    "fileSelector": "/path/to/whatsapp-order-intake/output/ds/latest.zip",
+    "options": {}
+   }
+  },
+  {
+   "id": "b1",
+   "name": "下载最新 zip（链接）",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    420
+   ],
+   "webhookId": "poultry-ds-latest",
+   "parameters": {
+    "httpMethod": "GET",
+    "path": "ds-latest",
+    "responseMode": "responseNode",
+    "options": {}
+   }
+  },
+  {
+   "id": "b2",
+   "name": "读最新 zip",
+   "type": "n8n-nodes-base.readWriteFile",
+   "typeVersion": 1,
+   "position": [
+    260,
+    420
+   ],
+   "parameters": {
+    "fileSelector": "/path/to/whatsapp-order-intake/output/ds/latest.zip",
+    "options": {}
+   }
+  },
+  {
+   "id": "b3",
+   "name": "回传 zip",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    520,
+    420
+   ],
+   "parameters": {
+    "respondWith": "binary",
+    "options": {}
+   }
+  },
+  {
+   "id": "a5",
+   "name": "发到总控台",
+   "type": "n8n-nodes-base.executeCommand",
+   "typeVersion": 1,
+   "position": [
+    780,
+    100
+   ],
+   "parameters": {
+    "command": "cd /path/to/whatsapp-order-intake && /opt/homebrew/bin/python3 console/notify.py orders"
+   }
+  }
+ ],
+ "connections": {
+  "每晚 22:00": {
+   "main": [
+    [
+     {
+      "node": "读 WhatsApp + DeepSeek 开单",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "手动跑一次": {
+   "main": [
+    [
+     {
+      "node": "读 WhatsApp + DeepSeek 开单",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "读 WhatsApp + DeepSeek 开单": {
+   "main": [
+    [
+     {
+      "node": "拿 zip",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "下载最新 zip（链接）": {
+   "main": [
+    [
+     {
+      "node": "读最新 zip",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "读最新 zip": {
+   "main": [
+    [
+     {
+      "node": "回传 zip",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "拿 zip": {
+   "main": [
+    [
+     {
+      "node": "发到总控台",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ }
+}

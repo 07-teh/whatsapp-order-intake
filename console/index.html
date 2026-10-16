@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>总控台</title>
+<link rel="icon" href="/static/orders.png">
+<style>
+  :root {
+    --rail: #2e2e2e; --list: #e7e7e7; --list-hover: #dcdcdc; --list-active: #c9c9c9;
+    --chat: #f5f5f5; --line: #dadada; --text: #111; --muted: #8a8a8a;
+    --bot: #ffffff; --me: #95ec69; --card: #ffffff; --accent: #07c160; --warn: #d93025;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --rail: #1b1b1b; --list: #262626; --list-hover: #303030; --list-active: #3a3a3a;
+      --chat: #1f1f1f; --line: #333; --text: #e6e6e6; --muted: #8d8d8d;
+      --bot: #2c2c2c; --me: #3eb575; --card: #2c2c2c;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { font: 14px/1.5 -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif; color: var(--text); background: var(--chat); }
+  .app { display: grid; grid-template-columns: 56px 260px 1fr; height: 100vh; }
+  .rail { background: var(--rail); display: flex; flex-direction: column; align-items: center; padding-top: 18px; gap: 18px; }
+  .rail .me { width: 34px; height: 34px; border-radius: 6px; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 600; }
+  .rail .tab { width: 26px; height: 26px; opacity: .9; }
+  .list { background: var(--list); border-right: 1px solid var(--line); overflow-y: auto; }
+  .list h1 { font-size: 13px; font-weight: 500; color: var(--muted); margin: 16px 14px 8px; }
+  .contact { display: flex; gap: 10px; padding: 12px 14px; cursor: pointer; }
+  .contact:hover { background: var(--list-hover); }
+  .contact.active { background: var(--list-active); }
+  .avatar { width: 40px; height: 40px; border-radius: 6px; background: #fff; flex: none; object-fit: contain; }
+  .contact .meta { min-width: 0; flex: 1; }
+  .contact .row { display: flex; justify-content: space-between; gap: 6px; }
+  .contact .name { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .contact .time { font-size: 11px; color: var(--muted); flex: none; }
+  .contact .preview { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chat { display: flex; flex-direction: column; min-width: 0; position: relative; }
+  .head { height: 60px; padding: 0 22px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 12px; }
+  .head .title { font-size: 16px; font-weight: 500; }
+  .head .sub { font-size: 12px; color: var(--muted); }
+  .head .grow { flex: 1; min-width: 0; }
+  .chip { font-size: 12px; padding: 3px 10px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); white-space: nowrap; }
+  .chip.warn { color: var(--warn); border-color: var(--warn); }
+  .head a { font-size: 12px; color: var(--muted); text-decoration: none; border: 1px solid var(--line); border-radius: 12px; padding: 3px 10px; }
+  .head a:hover { color: var(--text); }
+  .msgs { flex: 1; overflow-y: auto; padding: 18px 22px 8px; }
+  .stamp { text-align: center; font-size: 11px; color: var(--muted); margin: 14px 0 10px; }
+  .msg { display: flex; gap: 10px; margin: 10px 0; align-items: flex-start; }
+  .msg.me { flex-direction: row-reverse; }
+  .msg .avatar { width: 36px; height: 36px; }
+  .msg .me-av { width: 36px; height: 36px; border-radius: 6px; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 13px; flex: none; }
+  .body { max-width: min(560px, 70%); display: flex; flex-direction: column; gap: 6px; }
+  .msg.me .body { align-items: flex-end; }
+  .bubble { background: var(--bot); padding: 9px 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-word; box-shadow: 0 1px 1px rgba(0,0,0,.04); }
+  .msg.me .bubble { background: var(--me); color: #111; }
+  .file { display: flex; gap: 12px; align-items: center; width: 260px; padding: 12px 14px; background: var(--card); border-radius: 6px; color: inherit; text-decoration: none; border: 1px solid var(--line); }
+  .file:hover { border-color: var(--accent); }
+  .file .fname { font-size: 13px; word-break: break-all; }
+  .file .fsize { font-size: 11px; color: var(--muted); }
+  .file .ico { width: 36px; height: 42px; flex: none; border-radius: 3px; background: #f0b429; color: #fff; display: grid; place-items: center; font-size: 10px; font-weight: 700; }
+  .compose { border-top: 1px solid var(--line); padding: 12px 22px 16px; display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; }
+  .compose button { font: inherit; padding: 7px 16px; border-radius: 4px; border: 0; background: var(--accent); color: #fff; cursor: pointer; }
+  .compose button:disabled { opacity: .5; cursor: default; }
+  .drop { position: absolute; inset: 0; background: rgba(7,193,96,.08); border: 2px dashed var(--accent); display: none; place-items: center; font-size: 18px; color: var(--accent); pointer-events: none; }
+  .chat.dragging .drop { display: grid; }
+  .empty { color: var(--muted); text-align: center; margin-top: 80px; }
+  @media (max-width: 760px) {
+    .app { grid-template-columns: 1fr; }
+    .rail, .list { display: none; }
+    .head { padding: 0 16px; } .msgs, .compose { padding-left: 16px; padding-right: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail"><div class="me" title="我">我</div>
+    <svg class="tab" viewBox="0 0 24 24" fill="none" stroke="#07c160" stroke-width="1.8"><path d="M4 5h16v11H9l-5 4z" stroke-linejoin="round"/></svg>
+  </nav>
+  <aside class="list"><h1>助手</h1><div id="contacts"></div></aside>
+  <main class="chat" id="chat">
+    <header class="head">
+      <img class="avatar" id="h-av" alt="">
+      <div class="grow"><div class="title" id="h-name"></div><div class="sub" id="h-sub"></div></div>
+      <span class="chip" id="h-status" hidden></span>
+      <span id="h-links"></span>
+    </header>
+    <section class="msgs" id="msgs"></section>
+    <footer class="compose">
+      <span class="grow" style="flex:1">把回传包 zip 拖进对话框就能上传</span>
+      <input type="file" id="pick" hidden>
+      <button id="pickbtn">选文件上传</button>
+    </footer>
+    <div class="drop">放开就上传</div>
+  </main>
+</div>
+<script>
+const H = { 'X-Console': '1' };
+let bots = [], current = null, shown = '', busy = false;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const size = n => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+const short = t => { if (!t) return ''; const d = new Date(t.replace(' ', 'T')), now = new Date();
+  return d.toDateString() === now.toDateString() ? t.slice(11, 16) : t.slice(5, 10).replace('-', '/'); };
+
+async function loadBots() {
+  bots = await (await fetch('/api/bots')).json();
+  if (!current && bots.length) current = (localStorageGet('bot') && bots.find(b => b.id === localStorageGet('bot'))) ? localStorageGet('bot') : bots[0].id;
+  $('contacts').innerHTML = bots.map(b => `
+    <div class="contact ${b.id === current ? 'active' : ''}" data-id="${esc(b.id)}">
+      <img class="avatar" src="/static/${esc(b.avatar || '')}" alt="">
+      <div class="meta"><div class="row"><span class="name">${esc(b.name)}</span><span class="time">${esc(short(b.last && b.last.time))}</span></div>
+      <div class="preview">${esc((b.last && b.last.text) || b.subtitle || '')}</div></div>
+    </div>`).join('');
+  document.querySelectorAll('.contact').forEach(el => el.onclick = () => { current = el.dataset.id; localStorageSet('bot', current); shown = ''; render().then(status); });
+  header();
+}
+function localStorageGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function localStorageSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+function header() {
+  const b = bots.find(x => x.id === current); if (!b) return;
+  $('h-av').src = '/static/' + (b.avatar || ''); $('h-name').textContent = b.name; $('h-sub').textContent = b.subtitle || '';
+  $('h-links').innerHTML = (b.links || []).map(l => `<a href="${esc(l.url)}" target="_blank">${esc(l.label)} ↗</a>`).join(' ');
+}
+
+async function status() {
+  if (!current) return;
+  const s = (await (await fetch(`/api/bots/${current}/status`)).json()).status;
+  const el = $('h-status'); el.hidden = !s; el.textContent = s.replace(/（.*?）/, '');
+  el.className = 'chip' + (/不足|失败/.test(s) ? ' warn' : '');
+}
+
+async function render() {
+  await loadBots();
+  if (!current) return;
+  const list = await (await fetch(`/api/bots/${current}/messages`)).json();
+  const key = current + ':' + list.length + (busy ? ':busy' : '');
+  if (key === shown) return;
+  shown = key;
+  const b = bots.find(x => x.id === current);
+  let html = '', last = '';
+  for (const m of list) {
+    if (!last || (new Date(m.time.replace(' ', 'T')) - new Date(last.replace(' ', 'T'))) > 5 * 60000) html += `<div class="stamp">${esc(m.time.slice(0, 16))}</div>`;
+    last = m.time;
+    const mine = m.from === 'me';
+    const av = mine ? '<div class="me-av">我</div>' : `<img class="avatar" src="/static/${esc(b.avatar || '')}" alt="">`;
+    const files = m.files.map(f => `<a class="file" href="${esc(f.url)}" download><div class="meta" style="flex:1;min-width:0">
+        <div class="fname">${esc(f.name)}</div><div class="fsize">${size(f.size)} · 点一下下载</div></div><div class="ico">${esc((f.name.split('.').pop() || '').toUpperCase().slice(0, 4))}</div></a>`).join('');
+    html += `<div class="msg ${mine ? 'me' : ''}">${av}<div class="body">${m.text ? `<div class="bubble">${esc(m.text)}</div>` : ''}${files}</div></div>`;
+  }
+  if (busy) html += `<div class="msg"><img class="avatar" src="/static/${esc(b.avatar || '')}" alt=""><div class="body"><div class="bubble">处理中…</div></div></div>`;
+  $('msgs').innerHTML = html || '<div class="empty">还没有消息。每晚 22:00 会在这里发草稿 zip。</div>';
+  $('msgs').scrollTop = $('msgs').scrollHeight;
+}
+
+async function upload(file) {
+  if (!file || !current) return;
+  busy = true; $('pickbtn').disabled = true; shown = ''; await render();
+  const before = (await (await fetch(`/api/bots/${current}/messages`)).json()).length;
+  let ok = false;
+  try {
+    const r = await fetch(`/api/bots/${current}/upload?name=${encodeURIComponent(file.name)}`, { method: 'POST', headers: H, body: file });
+    ok = r.ok;
+    if (!r.ok) alert('上传失败：' + r.status);
+  } catch (e) { alert('上传失败：' + e); }
+  if (!ok) { busy = false; $('pickbtn').disabled = false; shown = ''; return render(); }
+  // 等机器人回话：上传那条 + n8n 回的一条
+  for (let i = 0; i < 400; i++) {
+    await new Promise(r => setTimeout(r, 1500));
+    const n = (await (await fetch(`/api/bots/${current}/messages`)).json()).length;
+    if (n >= before + 2) break;
+  }
+  busy = false; $('pickbtn').disabled = false; shown = ''; render();
+}
+
+$('pickbtn').onclick = () => $('pick').click();
+$('pick').onchange = e => { upload(e.target.files[0]); e.target.value = ''; };
+const chat = $('chat');
+['dragenter', 'dragover'].forEach(t => chat.addEventListener(t, e => { e.preventDefault(); chat.classList.add('dragging'); }));
+['dragleave', 'drop'].forEach(t => chat.addEventListener(t, e => { e.preventDefault(); if (t === 'drop' || e.target === chat) chat.classList.remove('dragging'); }));
+chat.addEventListener('drop', e => { chat.classList.remove('dragging'); upload(e.dataTransfer.files[0]); });
+
+render().then(status);
+setInterval(() => { if (!busy) render(); }, 4000);
+setInterval(status, 60000);
+</script>
+</body>
+</html>

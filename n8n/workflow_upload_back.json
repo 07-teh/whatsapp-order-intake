@@ -1,0 +1,80 @@
+{
+ "name": "订单助手 · 收回传包",
+ "id": "poultryUploadBack1",
+ "active": false,
+ "settings": {
+  "executionOrder": "v1",
+  "timezone": "Asia/Kuala_Lumpur"
+ },
+ "nodes": [
+  {
+   "id": "d1",
+   "name": "总控台传来的文件",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    0
+   ],
+   "webhookId": "poultry-orders-upload",
+   "parameters": {
+    "httpMethod": "POST",
+    "path": "orders-upload",
+    "responseMode": "responseNode",
+    "options": {}
+   }
+  },
+  {
+   "id": "d2",
+   "name": "放进 data/",
+   "type": "n8n-nodes-base.executeCommand",
+   "typeVersion": 1,
+   "position": [
+    260,
+    0
+   ],
+   "parameters": {
+    "command": "cd /path/to/whatsapp-order-intake && /opt/homebrew/bin/python3 pipeline/ingest_back.py --pending"
+   }
+  },
+  {
+   "id": "d3",
+   "name": "回话",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    520,
+    0
+   ],
+   "parameters": {
+    "respondWith": "text",
+    "responseBody": "={{ $json.stdout }}",
+    "options": {}
+   }
+  }
+ ],
+ "connections": {
+  "总控台传来的文件": {
+   "main": [
+    [
+     {
+      "node": "放进 data/",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "放进 data/": {
+   "main": [
+    [
+     {
+      "node": "回话",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ }
+}

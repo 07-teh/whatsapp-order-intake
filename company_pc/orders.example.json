@@ -1,0 +1,13 @@
+[
+  {
+    "ref": "test-001",
+    "code": "300-N0004",
+    "doc_date": "11/10/2026",
+    "doc_ref1": "",
+    "agent": "",
+    "branch_name": "",
+    "items": [
+      { "item_code": "CKW-OFFAL", "desc_suffix": "- M 100PCS", "qty": 0 }
+    ]
+  }
+]

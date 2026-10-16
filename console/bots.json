@@ -1,0 +1,12 @@
+[
+  {
+    "id": "orders",
+    "name": "订单助手",
+    "avatar": "orders.png",
+    "subtitle": "WhatsApp 订单 · DeepSeek 每晚 22:00",
+    "upload_dir": "output/inbox",
+    "upload_webhook": "http://127.0.0.1:5678/webhook/orders-upload",
+    "status_cmd": ["/opt/homebrew/bin/python3", "pipeline/balance.py"],
+    "links": [{"label": "n8n", "url": "http://localhost:5678/home/workflows"}]
+  }
+]
